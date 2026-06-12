@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-deep:       #0D1117;
+  --bg-surface:    #161B22;
+  --bg-elevated:   #1C2128;
+  --bg-card:       #21262D;
+  --border:        #30363D;
+  --border-bright: #484F58;
+
+  --cyan:          #00C8FF;
+  --cyan-dim:      rgba(0,200,255,0.15);
+  --green:         #00E5A0;
+  --green-dim:     rgba(0,229,160,0.15);
+  --amber:         #FFB547;
+  --amber-dim:     rgba(255,181,71,0.15);
+  --red:           #FF5C6B;
+  --red-dim:       rgba(255,92,107,0.15);
+  --purple:        #B48EF5;
+
+  --text-primary:  #F0F4F8;
+  --text-secondary:#8B949E;
+  --text-muted:    #484F58;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-surface); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(33, 38, 45, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+/* Glow effects */
+.glow-cyan  { box-shadow: 0 0 20px rgba(0,200,255,0.2); }
+.glow-green { box-shadow: 0 0 20px rgba(0,229,160,0.2); }
+.glow-red   { box-shadow: 0 0 20px rgba(255,92,107,0.2); }
+
+/* Status badges */
+.badge-normal { background: var(--green-dim);  color: var(--green);  }
+.badge-low    { background: var(--cyan-dim);   color: var(--cyan);   }
+.badge-high   { background: var(--red-dim);    color: var(--red);    }
+.badge-amber  { background: var(--amber-dim);  color: var(--amber);  }
+
+/* Input styling */
+.input-dark {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: border-color 0.2s;
+  width: 100%;
+  font-size: 14px;
+}
+.input-dark:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-dim);
+}
+.input-dark::placeholder { color: var(--text-muted); }
+
+/* Button variants */
+.btn-primary {
+  background: var(--cyan);
+  color: #0D1117;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+.btn-primary:hover { 
+  background: #33d1ff; 
+  box-shadow: 0 4px 15px rgba(0,200,255,0.35);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+.btn-ghost:hover { 
+  border-color: var(--cyan); 
+  color: var(--cyan); 
+}
+
+/* ECG pulse line animation */
+@keyframes pulse-line {
+  0% { stroke-dashoffset: 1000; }
+  100% { stroke-dashoffset: 0; }
+}
+.ecg-line {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: pulse-line 3s ease-in-out infinite;
+}
+
+/* Progress bar */
+.progress-track {
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cyan), var(--green));
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
