@@ -242,7 +242,7 @@ export default function EditConsultationForm({
         {activeSection === 'peptides' && (
           <div>
             <STitle icon="💉" title="Péptidos" />
-            {peptides.map((pep, i) => (
+            {peptides.map((pep: any, i: number) => (
               <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '16px', marginBottom: '12px', border: '1px solid var(--border)' }}>
                 <div style={grid}>
                   <div>
@@ -285,7 +285,7 @@ export default function EditConsultationForm({
           <div>
             <STitle icon="🧪" title="Resultados de Laboratorio" />
             {labs.length === 0 && <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>No hay resultados registrados en esta consulta.</p>}
-            {labs.map((lab, i) => (
+            {labs.map((lab: any, i: number) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 0.8fr 0.8fr 0.8fr', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
                 <input className="input-dark" value={lab.param} placeholder="Parámetro" style={{ fontSize: '13px' }} onChange={e => { const c=[...labs]; c[i].param=e.target.value; setLabs(c) }} />
                 <input className="input-dark" type="number" value={lab.value} placeholder="Valor" style={{ fontSize: '13px' }} onChange={e => { const c=[...labs]; c[i].value=e.target.value; setLabs(c) }} />
