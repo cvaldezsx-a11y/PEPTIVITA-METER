@@ -6,7 +6,7 @@ import ConsultationForm from './ConsultationForm'
 import ConsultationHistory from './ConsultationHistory'
 import NewPatientForm from './NewPatientForm'
 
-type View = 'search' | 'new-patient' | 'consultation' | 'history' | 'history'
+type View = 'search' | 'new-patient' | 'consultation' | 'history' | 'history' | 'history'
 
 export default function ModeratorPanel({
   moderator, onLogout
