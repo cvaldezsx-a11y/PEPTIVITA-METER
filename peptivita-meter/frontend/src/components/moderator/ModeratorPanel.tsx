@@ -6,15 +6,13 @@ import ConsultationForm from './ConsultationForm'
 import ConsultationHistory from './ConsultationHistory'
 import NewPatientForm from './NewPatientForm'
 
-type View = 'search' | 'new-patient' | 'consultation' | 'history'
-
 export default function ModeratorPanel({
   moderator, onLogout
 }: {
   moderator: any
   onLogout: () => void
 }) {
-  const [view, setView] = useState<View>('search')
+  const [view, setView] = useState('search')
   const [searchQuery, setSearchQuery] = useState('')
   const [foundPatient, setFoundPatient] = useState<Patient | null>(null)
   const [allPatients, setAllPatients] = useState<Patient[]>([])
@@ -33,7 +31,6 @@ export default function ModeratorPanel({
     setLoadingPatients(false)
   }
 
-  // Filtro en tiempo real por nombre O cédula
   const filteredPatients = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return allPatients
@@ -43,7 +40,6 @@ export default function ModeratorPanel({
     )
   }, [searchQuery, allPatients])
 
-  // Agrupar por letra inicial
   const groupedPatients = useMemo(() => {
     const groups: Record<string, Patient[]> = {}
     filteredPatients.forEach(p => {
@@ -61,6 +57,16 @@ export default function ModeratorPanel({
     setView('history')
   }
 
+  const navItems = [
+    { id: 'search',      icon: '🔍', label: 'Pacientes' },
+    { id: 'new-patient', icon: '➕', label: 'Nuevo Paciente' },
+  ]
+
+  const subTabs = [
+    { id: 'history',      label: 'Ver Historial',    icon: '📋' },
+    { id: 'consultation', label: '+ Nueva Consulta', icon: '📝' },
+  ]
+
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg-deep)' }}>
       {/* Sidebar */}
@@ -77,12 +83,9 @@ export default function ModeratorPanel({
         </div>
 
         <nav style={{ flex: 1 }}>
-          {[
-            { id: 'search',      icon: '🔍', label: 'Pacientes' },
-            { id: 'new-patient', icon: '➕', label: 'Nuevo Paciente' },
-          ].map(item => (
+          {navItems.map(item => (
             <button key={item.id}
-              onClick={() => { setView(item.id as View); setFoundPatient(null) }}
+              onClick={() => { setView(item.id); setFoundPatient(null) }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '10px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
@@ -110,176 +113,111 @@ export default function ModeratorPanel({
       {/* Main */}
       <main style={{ flex: 1, overflow: 'auto', padding: '32px' }}>
 
-        {/* ── NUEVO PACIENTE ── */}
+        {/* NUEVO PACIENTE */}
         {view === 'new-patient' && (
           <NewPatientForm
             moderatorId={moderator.id}
-            onSuccess={(p) => { selectPatient(p) }}
+            onSuccess={(p) => selectPatient(p)}
           />
         )}
 
-        {/* ── LISTA / CONSULTA ── */}
-        {(view === 'search' || view === 'consultation') && (
+        {/* LISTA DE PACIENTES */}
+        {view === 'search' && (
           <div>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-              <div>
-                <h1 style={{ fontFamily: 'DM Sans', fontSize: '24px', fontWeight: 700, margin: '0 0 4px' }}>
-                  {view === 'consultation' && foundPatient
-                    ? `Consulta — ${foundPatient.full_name}`
-                    : 'Pacientes'}
-                </h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
-                  {view === 'consultation' && foundPatient
-                    ? `Cédula: ${foundPatient.cedula}`
-                    : `${allPatients.length} pacientes registrados`}
-                </p>
-              </div>
-              {view === 'consultation' && foundPatient && (
-                <button
-                  className="btn-ghost"
-                  onClick={() => { setFoundPatient(null); setView('search') }}
-                  style={{ fontSize: '13px' }}
-                >
-                  ← Volver a Pacientes
+            <div style={{ marginBottom: '24px' }}>
+              <h1 style={{ fontFamily: 'DM Sans', fontSize: '24px', fontWeight: 700, margin: '0 0 4px' }}>
+                Pacientes
+              </h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>
+                {allPatients.length} pacientes registrados
+              </p>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: '24px', maxWidth: '480px' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>🔍</span>
+              <input
+                className="input-dark"
+                style={{ paddingLeft: '38px', fontSize: '15px' }}
+                placeholder="Buscar por nombre o cédula..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '18px' }}>
+                  ×
                 </button>
               )}
             </div>
 
-            {/* ── BUSCADOR ── */}
-            {view === 'search' && (
+            {loadingPatients ? (
+              <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Cargando pacientes...</div>
+            ) : filteredPatients.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔍</div>
+                <div style={{ fontWeight: 600, marginBottom: '8px' }}>No se encontró "{searchQuery}"</div>
+                <button className="btn-primary" onClick={() => setView('new-patient')} style={{ marginTop: '8px', fontSize: '13px' }}>
+                  + Registrar nuevo paciente
+                </button>
+              </div>
+            ) : (
               <div>
-                <div style={{ position: 'relative', marginBottom: '24px', maxWidth: '480px' }}>
-                  <span style={{
-                    position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-                    fontSize: '16px', pointerEvents: 'none',
-                  }}>🔍</span>
-                  <input
-                    className="input-dark"
-                    style={{ paddingLeft: '38px', fontSize: '15px' }}
-                    placeholder="Buscar por nombre o cédula..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    autoFocus
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      style={{
-                        position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', color: 'var(--text-muted)',
-                        cursor: 'pointer', fontSize: '18px', lineHeight: 1,
-                      }}
-                    >×</button>
-                  )}
-                </div>
-
-                {loadingPatients ? (
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Cargando pacientes...</div>
-                ) : filteredPatients.length === 0 ? (
-                  <div style={{
-                    textAlign: 'center', padding: '48px 24px',
-                    color: 'var(--text-secondary)',
-                  }}>
-                    <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔍</div>
-                    <div style={{ fontWeight: 600, marginBottom: '8px' }}>
-                      No se encontró "{searchQuery}"
-                    </div>
-                    <button
-                      className="btn-primary"
-                      onClick={() => setView('new-patient')}
-                      style={{ marginTop: '8px', fontSize: '13px' }}
-                    >
-                      + Registrar nuevo paciente
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    {/* Resultado count cuando hay búsqueda */}
-                    {searchQuery && (
-                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                        {filteredPatients.length} resultado{filteredPatients.length !== 1 ? 's' : ''} para "{searchQuery}"
-                      </div>
-                    )}
-
-                    {/* Lista agrupada por letra */}
-                    {alphabet.map(letter => (
-                      <div key={letter} style={{ marginBottom: '20px' }}>
-                        {/* Letra del alfabeto */}
-                        <div style={{
-                          fontSize: '12px', fontWeight: 700, color: 'var(--cyan)',
-                          letterSpacing: '1px', marginBottom: '8px',
-                          paddingBottom: '6px', borderBottom: '1px solid var(--border)',
-                        }}>
-                          {letter}
-                        </div>
-
-                        {/* Pacientes de esa letra */}
-                        <div style={{ display: 'grid', gap: '6px' }}>
-                          {groupedPatients[letter].map(p => (
-                            <PatientRow
-                              key={p.id}
-                              patient={p}
-                              searchQuery={searchQuery}
-                              onClick={() => selectPatient(p)}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                {searchQuery && (
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                    {filteredPatients.length} resultado{filteredPatients.length !== 1 ? 's' : ''} para "{searchQuery}"
                   </div>
                 )}
+                {alphabet.map(letter => (
+                  <div key={letter} style={{ marginBottom: '20px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--cyan)', letterSpacing: '1px', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid var(--border)' }}>
+                      {letter}
+                    </div>
+                    <div style={{ display: 'grid', gap: '6px' }}>
+                      {groupedPatients[letter].map(p => (
+                        <PatientRow key={p.id} patient={p} searchQuery={searchQuery} onClick={() => selectPatient(p)} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
+          </div>
+        )}
 
-            {/* ── FORMULARIO DE CONSULTA ── */}
-            {view === 'consultation' && foundPatient && (
+        {/* HISTORIAL Y CONSULTA */}
+        {(view === 'history' || view === 'consultation') && foundPatient && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
-                {/* Sub-tabs nueva consulta / historial */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-                  {[
-                    { id: 'consultation', label: '+ Nueva Consulta', icon: '📝' },
-                    { id: 'history',      label: 'Ver Historial',    icon: '📋' },
-                  ].map(t => (
-                    <button key={t.id}
-                      onClick={() => setView(t.id as View)}
-                      style={{
-                        padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                        fontSize: '14px', fontWeight: 600,
-                        background: view === t.id ? 'var(--cyan-dim)' : 'var(--bg-card)',
-                        color: view === t.id ? 'var(--cyan)' : 'var(--text-secondary)',
-                        transition: 'all 0.15s',
-                      }}
-                    >{t.icon} {t.label}</button>
-                  ))}
-                </div>
-                <ConsultationForm patient={foundPatient} moderatorId={moderator.id} />
+                <button onClick={() => { setFoundPatient(null); setView('search') }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', marginBottom: '6px', padding: 0, display: 'block' }}>
+                  ← Volver a Pacientes
+                </button>
+                <h1 style={{ fontFamily: 'DM Sans', fontSize: '22px', fontWeight: 700, margin: '0 0 2px' }}>
+                  {foundPatient.full_name}
+                </h1>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>CI: {foundPatient.cedula}</p>
               </div>
-            )}
+            </div>
 
-            {/* ── HISTORIAL ── */}
-            {view === 'history' && foundPatient && (
-              <div>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-                  {[
-                    { id: 'consultation', label: '+ Nueva Consulta', icon: '📝' },
-                    { id: 'history',      label: 'Ver Historial',    icon: '📋' },
-                  ].map(t => (
-                    <button key={t.id}
-                      onClick={() => setView(t.id as View)}
-                      style={{
-                        padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                        fontSize: '14px', fontWeight: 600,
-                        background: view === t.id ? 'var(--cyan-dim)' : 'var(--bg-card)',
-                        color: view === t.id ? 'var(--cyan)' : 'var(--text-secondary)',
-                        transition: 'all 0.15s',
-                      }}
-                    >{t.icon} {t.label}</button>
-                  ))}
-                </div>
-                <ConsultationHistory patient={foundPatient} />
-              </div>
-            )}
+            {/* Sub-tabs */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+              {subTabs.map(t => (
+                <button key={t.id} onClick={() => setView(t.id)}
+                  style={{
+                    padding: '10px 20px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                    fontSize: '14px', fontWeight: 600,
+                    background: view === t.id ? 'var(--cyan-dim)' : 'var(--bg-card)',
+                    color: view === t.id ? 'var(--cyan)' : 'var(--text-secondary)',
+                    transition: 'all 0.15s',
+                  }}
+                >{t.icon} {t.label}</button>
+              ))}
+            </div>
+
+            {view === 'history' && <ConsultationHistory patient={foundPatient} />}
+            {view === 'consultation' && <ConsultationForm patient={foundPatient} moderatorId={moderator.id} />}
           </div>
         )}
       </main>
@@ -287,7 +225,6 @@ export default function ModeratorPanel({
   )
 }
 
-// ── PatientRow con highlight del texto buscado ──────────────
 function PatientRow({ patient, searchQuery, onClick }: {
   patient: Patient
   searchQuery: string
@@ -311,8 +248,7 @@ function PatientRow({ patient, searchQuery, onClick }: {
   }
 
   return (
-    <button
-      onClick={onClick}
+    <button onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -324,7 +260,6 @@ function PatientRow({ patient, searchQuery, onClick }: {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {/* Avatar con inicial */}
         <div style={{
           width: '36px', height: '36px', borderRadius: '50%',
           background: hovered ? 'var(--cyan)' : 'var(--bg-elevated)',
@@ -345,17 +280,7 @@ function PatientRow({ patient, searchQuery, onClick }: {
           </div>
         </div>
       </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {patient.goal_weight && (
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Meta: {patient.goal_weight} kg
-          </span>
-        )}
-        <span style={{ color: 'var(--cyan)', fontSize: '16px', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s' }}>
-          →
-        </span>
-      </div>
+      <span style={{ color: 'var(--cyan)', fontSize: '16px', opacity: hovered ? 1 : 0, transition: 'opacity 0.15s' }}>→</span>
     </button>
   )
 }
