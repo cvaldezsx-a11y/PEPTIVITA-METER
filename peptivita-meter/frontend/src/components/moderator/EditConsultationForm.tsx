@@ -116,12 +116,18 @@ export default function EditConsultationForm({
       // 1. Notas
       await supabase.from('consultations').update({ notes_specialist: notes }).eq('id', consultation.id)
 
-      // 2. Antropometría
+      // 2. Antropometría — buscar si existe, si no insertar
       const anthropoData = Object.fromEntries(
         Object.entries({ ...anthropo, ...vitals }).map(([k, v]) => [k, v === '' ? null : Number(v)])
       )
-      if (a.id) {
-        await supabase.from('anthropometrics').update(anthropoData).eq('id', a.id)
+      const { data: existingAnthro } = await supabase
+        .from('anthropometrics')
+        .select('id')
+        .eq('consultation_id', consultation.id)
+        .maybeSingle()
+
+      if (existingAnthro?.id) {
+        await supabase.from('anthropometrics').update(anthropoData).eq('id', existingAnthro.id)
       } else {
         await supabase.from('anthropometrics').insert({ consultation_id: consultation.id, ...anthropoData })
       }
