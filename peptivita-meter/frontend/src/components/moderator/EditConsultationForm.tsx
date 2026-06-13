@@ -237,11 +237,11 @@ export default function EditConsultationForm({
             <STitle icon="📏" title="Básicos" />
             <div style={grid}>
               {[
-                { k: 'age', l: 'Edad', p: 'años' },
-                { k: 'height_cm', l: 'Altura', p: 'cm' },
-                { k: 'weight_kg', l: 'Peso', p: 'kg' },
-                { k: 'body_fat_pct', l: '% Grasa', p: '%' },
-                { k: 'muscle_mass_kg', l: 'Masa Muscular', p: 'kg' },
+                { k: 'age', l: 'Edad (años)', p: 'ej: 35' },
+                { k: 'height_cm', l: 'Altura (cm) ej: 169', p: 'ej: 169' },
+                { k: 'weight_kg', l: 'Peso (kg) ej: 82.5', p: 'ej: 82.5' },
+                { k: 'body_fat_pct', l: '% Grasa Corporal', p: 'ej: 28.5' },
+                { k: 'muscle_mass_kg', l: 'Masa Muscular (kg)', p: 'ej: 45.2' },
               ].map(f => <FF key={f.k} label={f.l} placeholder={f.p} value={(anthropo as any)[f.k]} onChange={v => setAnthro(a => ({ ...a, [f.k]: v }))} />)}
             </div>
             <STitle icon="📐" title="Perímetros (cm)" />

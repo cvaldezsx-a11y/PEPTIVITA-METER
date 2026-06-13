@@ -269,11 +269,11 @@ export default function ConsultationForm({
             <SectionTitle icon="📏" title="Antropometría Básica" />
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
               {[
-                { key: 'age',           label: 'Edad',             placeholder: 'años' },
-                { key: 'height_cm',     label: 'Altura',           placeholder: 'cm' },
-                { key: 'weight_kg',     label: 'Peso actual',      placeholder: 'kg' },
-                { key: 'body_fat_pct',  label: '% Grasa Corporal', placeholder: '%' },
-                { key: 'muscle_mass_kg',label: 'Masa Muscular',    placeholder: 'kg' },
+                { key: 'age',           label: 'Edad (años)',            placeholder: 'ej: 35' },
+                { key: 'height_cm',     label: 'Altura en cm (ej: 169)', placeholder: 'ej: 169' },
+                { key: 'weight_kg',     label: 'Peso actual (kg)',        placeholder: 'ej: 82.5' },
+                { key: 'body_fat_pct',  label: '% Grasa Corporal',        placeholder: 'ej: 28.5' },
+                { key: 'muscle_mass_kg',label: 'Masa Muscular (kg)',      placeholder: 'ej: 45.2' },
               ].map(f => (
                 <FormField key={f.key} label={f.label} placeholder={f.placeholder}
                   value={(anthropo as any)[f.key]}
