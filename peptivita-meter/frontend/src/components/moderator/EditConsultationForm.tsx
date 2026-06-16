@@ -27,13 +27,13 @@ export default function EditConsultationForm({
   patient: any
   onBack: () => void
 }) {
-  const a = consultation.anthropometrics?.[0] || {}
-  const existingPeps = consultation.peptide_treatments || []
-  const existingLabs = consultation.lab_results || []
+  const a = consultation?.anthropometrics?.[0] || {}
+  const existingPeps = consultation?.peptide_treatments || []
+  const existingLabs = consultation?.lab_results || []
 
   const [activeSection, setActiveSection] = useState<Section>('anthropo')
   const [saving, setSaving] = useState(false)
-  const [notes, setNotes] = useState(consultation.notes_specialist || '')
+  const [notes, setNotes] = useState(consultation?.notes_specialist || '')
 
   const [anthropo, setAnthro] = useState({
     age:                  String(a.age || ''),

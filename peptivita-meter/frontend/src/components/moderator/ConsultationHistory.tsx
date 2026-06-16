@@ -13,19 +13,53 @@ export default function ConsultationHistory({ patient }: { patient: Patient }) {
 
   async function loadConsultations() {
     setLoading(true)
-    const { data } = await supabase
-      .from('consultations')
-      .select(`
-        *,
-        anthropometrics(*),
-        peptide_treatments(*),
-        lab_results(*),
-        progress_photos(*)
-      `)
-      .eq('patient_id', patient.id)
-      .order('consultation_date', { ascending: false })
-    setConsultations(data || [])
-    setLoading(false)
+    try {
+      // 1. Buscamos solo las consultas principales
+      const { data: consults, error: consultErr } = await supabase
+        .from('consultations')
+        .select('*')
+        .eq('patient_id', patient.id)
+        .order('consultation_date', { ascending: false })
+
+      if (consultErr) throw consultErr
+
+      if (!consults || consults.length === 0) {
+        setConsultations([])
+        setLoading(false)
+        return
+      }
+
+      // Extraemos los IDs de las consultas para buscar sus detalles
+      const ids = consults.map(c => c.id)
+
+      // 2. Buscamos los detalles por separado (Sin joins anidados)
+      const [
+        { data: anthro },
+        { data: peps },
+        { data: labs },
+        { data: photos }
+      ] = await Promise.all([
+        supabase.from('anthropometrics').select('*').in('consultation_id', ids),
+        supabase.from('peptide_treatments').select('*').in('consultation_id', ids),
+        supabase.from('lab_results').select('*').in('consultation_id', ids),
+        supabase.from('progress_photos').select('*').in('consultation_id', ids)
+      ])
+
+      // 3. Unimos manualmente los datos en Javascript
+      const merged = consults.map(c => ({
+        ...c,
+        anthropometrics: (anthro || []).filter((a: any) => a.consultation_id === c.id),
+        peptide_treatments: (peps || []).filter((p: any) => p.consultation_id === c.id),
+        lab_results: (labs || []).filter((l: any) => l.consultation_id === c.id),
+        progress_photos: (photos || []).filter((ph: any) => ph.consultation_id === c.id)
+      }))
+
+      setConsultations(merged)
+    } catch (err) {
+      console.error("🚨 Error cargando historial:", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (editingId) {
@@ -128,7 +162,7 @@ export default function ConsultationHistory({ patient }: { patient: Patient }) {
                   <Stat label="Cintura" value={`${a.waist_cm} cm`} color="var(--green)" />
                 )}
                 {a?.bmi && (
-                  <Stat label="IMC" value={a.bmi.toFixed(1)} color="var(--text-secondary)" />
+                  <Stat label="IMC" value={Number(a.bmi).toFixed(1)} color="var(--text-secondary)" />
                 )}
                 {a?.bp_systolic && a?.bp_diastolic && (
                   <Stat label="Presión" value={`${a.bp_systolic}/${a.bp_diastolic}`} color="var(--red)" />
