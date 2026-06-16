@@ -221,7 +221,6 @@ export default function PatientDashboard({ patient, onLogout }: { patient: Patie
   const firstName = patient.full_name?.split(' ')[0] || 'Paciente'
 
   return (
-    // Se usa 100dvh para Safari en lugar de 100vh
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: '100dvh', background: 'var(--bg-deep)' }}>
       
       {/* ── HEADER MÓVIL ── */}
@@ -265,7 +264,7 @@ export default function PatientDashboard({ patient, onLogout }: { patient: Patie
       <main style={{ 
         flex: 1, overflowY: 'auto', overflowX: 'hidden', 
         padding: isMobile ? '20px 16px calc(80px + env(safe-area-inset-bottom)) 16px' : '32px',
-        WebkitOverflowScrolling: 'touch' // Suaviza el scroll en Safari iOS
+        WebkitOverflowScrolling: 'touch' 
       }}>
 
         {/* DASHBOARD */}
@@ -470,7 +469,7 @@ function PhotosPanel({ photos, isMobile }: { photos: any[], isMobile: boolean })
   function getUrl(path: string) { const { data } = supabase.storage.from('progress-photos').getPublicUrl(path); return data.publicUrl }
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexDirection: isMobile ? 'column' : 'row', gap: '12px', alignItems: isMobile ? 'flex-start' : 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexDirection: isMobile ? 'column' : 'row', gap: '12px', alignItems: isMobile ? 'flex-start' : 'center' }}>
         <h1 style={{ fontFamily: 'DM Sans', fontSize: isMobile ? '20px' : '24px', fontWeight: 700, margin: 0 }}>📸 Progreso</h1>
         <button className="btn-ghost" onClick={() => setCompareMode(!compareMode)} style={{ fontSize: '12px' }}>
           {compareMode ? '📋 Ver Galería' : '🔁 Comparar Antes/Después'}
@@ -544,7 +543,7 @@ function HistoryPanel({ consultations, anthropoHistory, isMobile }: { consultati
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexDirection: isMobile ? 'column' : 'row', gap: '12px', alignItems: isMobile ? 'flex-start' : 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexDirection: isMobile ? 'column' : 'row', gap: '12px', alignItems: isMobile ? 'flex-start' : 'center' }}>
         <h1 style={{ fontFamily: 'DM Sans', fontSize: isMobile ? '20px' : '24px', fontWeight: 700, margin: 0 }}>📋 Historial</h1>
         {consultations.length >= 2 && (
           <button className="btn-ghost" onClick={() => setMode(mode === 'list' ? 'compare' : 'list')} style={{ fontSize: '12px' }}>
