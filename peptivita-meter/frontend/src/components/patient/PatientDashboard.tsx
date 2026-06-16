@@ -120,73 +120,79 @@ export default function PatientDashboard({ patient, onLogout }: { patient: Patie
 
   async function loadAll() {
     setLoading(true)
-    const { data: consults, error: consultErr } = await supabase
-      .from('consultations').select('*')
-      .eq('patient_id', patient.id)
-      .order('consultation_date', { ascending: true })
+    try {
+      const { data: consults, error: consultErr } = await supabase
+        .from('consultations').select('*')
+        .eq('patient_id', patient.id)
+        .order('consultation_date', { ascending: true })
 
-    if (consultErr) console.error('Error consultations:', consultErr)
-    setConsultations(consults || [])
+      if (consultErr) console.error('Error consultations:', consultErr)
+      setConsultations(consults || [])
 
-    if (consults && consults.length > 0) {
-      const ids = consults.map((c: any) => c.id)
-      const dateById: Record<string, string> = {}
-      consults.forEach((c: any) => { dateById[c.id] = c.consultation_date })
+      if (consults && consults.length > 0) {
+        const ids = consults.map((c: any) => c.id)
+        const dateById: Record<string, string> = {}
+        consults.forEach((c: any) => { dateById[c.id] = c.consultation_date })
 
-      const latest = consults[consults.length - 1]
-      setLatestNotes(latest.notes_specialist || '')
+        const latest = consults[consults.length - 1]
+        setLatestNotes(latest.notes_specialist || '')
 
-      // Antropometría — SIN join anidado, lo unimos manualmente
-      const { data: anthrosRaw, error: anthroErr } = await supabase
-        .from('anthropometrics').select('*')
-        .in('consultation_id', ids)
-      if (anthroErr) console.error('Error anthropometrics:', anthroErr)
+        // Antropometría
+        const { data: anthrosRaw, error: anthroErr } = await supabase
+          .from('anthropometrics').select('*')
+          .in('consultation_id', ids)
+        if (anthroErr) console.error('Error anthropometrics:', anthroErr)
 
-      const anthros = (anthrosRaw || []).map((a: any) => ({
-        ...a,
-        consultations: { consultation_date: dateById[a.consultation_id] }
-      }))
-      const sorted = anthros.sort((a: any, b: any) =>
-        new Date(a.consultations.consultation_date).getTime() - new Date(b.consultations.consultation_date).getTime()
-      )
-      setAnthroHistory(sorted)
-      if (sorted.length > 0) setLatestAnthro(sorted[sorted.length - 1])
+        const anthros = (anthrosRaw || []).map((a: any) => ({
+          ...a,
+          consultations: { consultation_date: dateById[a.consultation_id] || '' }
+        }))
+        const sorted = anthros.sort((a: any, b: any) =>
+          new Date(a.consultations.consultation_date || 0).getTime() - new Date(b.consultations.consultation_date || 0).getTime()
+        )
+        setAnthroHistory(sorted)
+        if (sorted.length > 0) setLatestAnthro(sorted[sorted.length - 1])
 
-      // Péptidos
-      const { data: peps, error: pepErr } = await supabase
-        .from('peptide_treatments').select('*')
-        .in('consultation_id', ids).eq('is_active', true)
-      if (pepErr) console.error('Error peptides:', pepErr)
-      setActivePeptides(peps || [])
+        // Péptidos
+        const { data: peps, error: pepErr } = await supabase
+          .from('peptide_treatments').select('*')
+          .in('consultation_id', ids).eq('is_active', true)
+        if (pepErr) console.error('Error peptides:', pepErr)
+        setActivePeptides(peps || [])
 
-      // Labs — SIN join anidado
-      const { data: labsRaw, error: labErr } = await supabase
-        .from('lab_results').select('*')
-        .in('consultation_id', ids)
-      if (labErr) console.error('Error labs:', labErr)
+        // Labs
+        const { data: labsRaw, error: labErr } = await supabase
+          .from('lab_results').select('*')
+          .in('consultation_id', ids)
+        if (labErr) console.error('Error labs:', labErr)
 
-      const labs = (labsRaw || []).map((l: any) => ({
-        ...l,
-        consultations: { consultation_date: dateById[l.consultation_id] }
-      }))
-      setLabResults(labs)
-
+        const labs = (labsRaw || []).map((l: any) => ({
+          ...l,
+          consultations: { consultation_date: dateById[l.consultation_id] || '' }
+        }))
+        setLabResults(labs)
+      }
+      
       // Fotos
       const { data: ph, error: phErr } = await supabase
         .from('progress_photos').select('*')
         .eq('patient_id', patient.id).order('photo_date', { ascending: false })
       if (phErr) console.error('Error photos:', phErr)
       setPhotos(ph || [])
+
+    } catch (e) {
+      console.error("🚨 Error de red crítico en PatientDashboard:", e)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const initialWeight = patient.initial_weight || anthropoHistory[0]?.weight_kg
   const currentWeight = latestAnthro?.weight_kg
-  const pctLost = initialWeight && currentWeight
+  const pctLost = initialWeight && currentWeight && initialWeight > 0
     ? ((initialWeight - currentWeight) / initialWeight * 100).toFixed(1) : null
   const goalWeight = patient.goal_weight
-  const progressToGoal = initialWeight && goalWeight && currentWeight
+  const progressToGoal = initialWeight && goalWeight && currentWeight && (initialWeight - goalWeight) !== 0
     ? Math.min(100, Math.max(0, ((initialWeight - currentWeight) / (initialWeight - goalWeight) * 100))) : null
   const whr = latestAnthro?.waist_hip_ratio
   const whrClass = whr && patient.gender ? classifyWHR(whr, patient.gender as any) : null
@@ -214,6 +220,8 @@ export default function PatientDashboard({ patient, onLogout }: { patient: Patie
     </div>
   )
 
+  const firstName = patient.full_name?.split(' ')[0] || 'Paciente'
+
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg-deep)' }}>
       {/* Sidebar */}
@@ -225,8 +233,8 @@ export default function PatientDashboard({ patient, onLogout }: { patient: Patie
           </div>
           <div style={{ background: 'var(--cyan-dim)', border: '1px solid var(--cyan)', borderRadius: '10px', padding: '12px' }}>
             <div style={{ fontSize: '11px', color: 'var(--cyan)', fontWeight: 600, marginBottom: '2px' }}>BIENVENIDO/A</div>
-            <div style={{ fontSize: '14px', fontWeight: 700, lineHeight: 1.3 }}>{patient.full_name}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>CI: {patient.cedula}</div>
+            <div style={{ fontSize: '14px', fontWeight: 700, lineHeight: 1.3 }}>{patient.full_name || 'Paciente'}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>CI: {patient.cedula || 'N/A'}</div>
           </div>
         </div>
         <nav style={{ flex: 1 }}>
@@ -248,7 +256,7 @@ export default function PatientDashboard({ patient, onLogout }: { patient: Patie
           <div>
             <div style={{ marginBottom: '28px' }}>
               <h1 style={{ fontFamily: 'DM Sans', fontSize: '26px', fontWeight: 700, margin: '0 0 4px' }}>
-                Hola, {patient.full_name.split(' ')[0]} 👋
+                Hola, {firstName} 👋
               </h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>Tu resumen de progreso actualizado</p>
             </div>

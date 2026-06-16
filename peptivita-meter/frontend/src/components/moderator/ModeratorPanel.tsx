@@ -22,28 +22,36 @@ export default function ModeratorPanel({
 
   async function loadAllPatients() {
     setLoadingPatients(true)
-    const { data } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('is_active', true)
-      .order('full_name', { ascending: true })
-    if (data) setAllPatients(data)
-    setLoadingPatients(false)
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        // Se elimina el eq('is_active', true) temporalmente por si los inserts manuales lo omitieron
+        .order('full_name', { ascending: true })
+      
+      if (error) console.error('🚨 Error cargando pacientes:', error)
+      if (data) setAllPatients(data)
+    } catch (e) {
+      console.error('🚨 Error de red crítico al cargar pacientes:', e)
+    } finally {
+      setLoadingPatients(false)
+    }
   }
 
   const filteredPatients = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return allPatients
     return allPatients.filter(p =>
-      p.full_name.toLowerCase().includes(q) ||
-      p.cedula.includes(q)
+      (p.full_name || '').toLowerCase().includes(q) ||
+      (p.cedula || '').includes(q)
     )
   }, [searchQuery, allPatients])
 
   const groupedPatients = useMemo(() => {
     const groups: Record<string, Patient[]> = {}
     filteredPatients.forEach(p => {
-      const letter = p.full_name[0].toUpperCase()
+      const name = p.full_name || '?'
+      const letter = name.charAt(0).toUpperCase()
       if (!groups[letter]) groups[letter] = []
       groups[letter].push(p)
     })
@@ -102,7 +110,7 @@ export default function ModeratorPanel({
 
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-            {moderator.full_name}
+            {moderator?.full_name || 'Moderador'}
           </div>
           <button onClick={onLogout} className="btn-ghost" style={{ width: '100%', padding: '8px', fontSize: '13px' }}>
             Cerrar sesión
@@ -195,9 +203,9 @@ export default function ModeratorPanel({
                   ← Volver a Pacientes
                 </button>
                 <h1 style={{ fontFamily: 'DM Sans', fontSize: '22px', fontWeight: 700, margin: '0 0 2px' }}>
-                  {foundPatient.full_name}
+                  {foundPatient.full_name || 'Paciente sin nombre'}
                 </h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>CI: {foundPatient.cedula}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>CI: {foundPatient.cedula || 'N/A'}</p>
               </div>
             </div>
 
@@ -233,6 +241,7 @@ function PatientRow({ patient, searchQuery, onClick }: {
   const [hovered, setHovered] = useState(false)
 
   function highlight(text: string, query: string) {
+    if (!text) return <span></span>
     if (!query) return <span>{text}</span>
     const idx = text.toLowerCase().indexOf(query.toLowerCase())
     if (idx === -1) return <span>{text}</span>
@@ -246,6 +255,8 @@ function PatientRow({ patient, searchQuery, onClick }: {
       </span>
     )
   }
+
+  const initial = patient.full_name ? patient.full_name.charAt(0).toUpperCase() : '?'
 
   return (
     <button onClick={onClick}
@@ -268,14 +279,14 @@ function PatientRow({ patient, searchQuery, onClick }: {
           color: hovered ? 'var(--bg-deep)' : 'var(--text-secondary)',
           transition: 'all 0.15s', flexShrink: 0,
         }}>
-          {patient.full_name[0].toUpperCase()}
+          {initial}
         </div>
         <div>
           <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '2px' }}>
-            {highlight(patient.full_name, searchQuery)}
+            {highlight(patient.full_name || 'Paciente Sin Nombre', searchQuery)}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            CI: {highlight(patient.cedula, searchQuery)}
+            CI: {highlight(patient.cedula || 'N/A', searchQuery)}
             {patient.gender && <span style={{ marginLeft: '8px' }}>{patient.gender === 'M' ? '♂' : patient.gender === 'F' ? '♀' : '⚧'}</span>}
           </div>
         </div>
