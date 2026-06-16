@@ -120,39 +120,62 @@ export default function PatientDashboard({ patient, onLogout }: { patient: Patie
 
   async function loadAll() {
     setLoading(true)
-    const { data: consults } = await supabase
+    const { data: consults, error: consultErr } = await supabase
       .from('consultations').select('*')
       .eq('patient_id', patient.id)
       .order('consultation_date', { ascending: true })
+
+    if (consultErr) console.error('Error consultations:', consultErr)
     setConsultations(consults || [])
 
     if (consults && consults.length > 0) {
       const ids = consults.map((c: any) => c.id)
+      const dateById: Record<string, string> = {}
+      consults.forEach((c: any) => { dateById[c.id] = c.consultation_date })
+
       const latest = consults[consults.length - 1]
       setLatestNotes(latest.notes_specialist || '')
 
-      const { data: anthros } = await supabase
-        .from('anthropometrics').select('*, consultations(consultation_date)')
+      // Antropometría — SIN join anidado, lo unimos manualmente
+      const { data: anthrosRaw, error: anthroErr } = await supabase
+        .from('anthropometrics').select('*')
         .in('consultation_id', ids)
-      const sorted = (anthros || []).sort((a: any, b: any) =>
-        new Date(a.consultations?.consultation_date).getTime() - new Date(b.consultations?.consultation_date).getTime()
+      if (anthroErr) console.error('Error anthropometrics:', anthroErr)
+
+      const anthros = (anthrosRaw || []).map((a: any) => ({
+        ...a,
+        consultations: { consultation_date: dateById[a.consultation_id] }
+      }))
+      const sorted = anthros.sort((a: any, b: any) =>
+        new Date(a.consultations.consultation_date).getTime() - new Date(b.consultations.consultation_date).getTime()
       )
       setAnthroHistory(sorted)
       if (sorted.length > 0) setLatestAnthro(sorted[sorted.length - 1])
 
-      const { data: peps } = await supabase
+      // Péptidos
+      const { data: peps, error: pepErr } = await supabase
         .from('peptide_treatments').select('*')
         .in('consultation_id', ids).eq('is_active', true)
+      if (pepErr) console.error('Error peptides:', pepErr)
       setActivePeptides(peps || [])
 
-      const { data: labs } = await supabase
-        .from('lab_results').select('*, consultations(consultation_date)')
+      // Labs — SIN join anidado
+      const { data: labsRaw, error: labErr } = await supabase
+        .from('lab_results').select('*')
         .in('consultation_id', ids)
-      setLabResults(labs || [])
+      if (labErr) console.error('Error labs:', labErr)
 
-      const { data: ph } = await supabase
+      const labs = (labsRaw || []).map((l: any) => ({
+        ...l,
+        consultations: { consultation_date: dateById[l.consultation_id] }
+      }))
+      setLabResults(labs)
+
+      // Fotos
+      const { data: ph, error: phErr } = await supabase
         .from('progress_photos').select('*')
         .eq('patient_id', patient.id).order('photo_date', { ascending: false })
+      if (phErr) console.error('Error photos:', phErr)
       setPhotos(ph || [])
     }
     setLoading(false)
