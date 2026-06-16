@@ -8,6 +8,10 @@ export default function ConsultationHistory({ patient }: { patient: Patient }) {
   const [consultations, setConsultations] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
+  
+  // Estados para el Pop-up de eliminación
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => { loadConsultations() }, [])
 
@@ -45,7 +49,7 @@ export default function ConsultationHistory({ patient }: { patient: Patient }) {
         supabase.from('progress_photos').select('*').in('consultation_id', ids)
       ])
 
-      // 3. Unimos manualmente los datos en Javascript
+      // 3. Unimos manualmente los datos
       const merged = consults.map(c => ({
         ...c,
         anthropometrics: (anthro || []).filter((a: any) => a.consultation_id === c.id),
@@ -59,6 +63,32 @@ export default function ConsultationHistory({ patient }: { patient: Patient }) {
       console.error("🚨 Error cargando historial:", err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Función para eliminar definitivamente la consulta y todos sus datos vinculados
+  async function confirmDelete() {
+    if (!deletingId) return
+    setIsDeleting(true)
+    try {
+      // Borramos primero los hijos para evitar errores de llaves foráneas
+      await supabase.from('anthropometrics').delete().eq('consultation_id', deletingId)
+      await supabase.from('peptide_treatments').delete().eq('consultation_id', deletingId)
+      await supabase.from('lab_results').delete().eq('consultation_id', deletingId)
+      await supabase.from('progress_photos').delete().eq('consultation_id', deletingId)
+      
+      // Borramos el registro principal de la consulta
+      const { error } = await supabase.from('consultations').delete().eq('id', deletingId)
+      if (error) throw error
+
+      // Recargamos el historial para actualizar la pantalla
+      await loadConsultations()
+    } catch (err) {
+      console.error('Error al eliminar:', err)
+      alert('Hubo un error al intentar eliminar la consulta.')
+    } finally {
+      setIsDeleting(false)
+      setDeletingId(null)
     }
   }
 
@@ -105,13 +135,14 @@ export default function ConsultationHistory({ patient }: { patient: Patient }) {
           const photos = c.progress_photos || []
 
           return (
-            <div key={c.id} className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div key={c.id} className="glass-card" style={{ padding: '0', overflow: 'hidden', position: 'relative' }}>
               {/* Header de la consulta */}
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '16px 20px',
                 borderBottom: '1px solid var(--border)',
                 background: 'var(--bg-elevated)',
+                flexWrap: 'wrap', gap: '12px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{
@@ -138,13 +169,25 @@ export default function ConsultationHistory({ patient }: { patient: Patient }) {
                     </div>
                   </div>
                 </div>
-                <button
-                  className="btn-primary"
-                  onClick={() => setEditingId(c.id)}
-                  style={{ fontSize: '13px', padding: '8px 16px' }}
-                >
-                  ✏️ Editar
-                </button>
+                
+                {/* Botones de acción */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    className="btn-ghost"
+                    onClick={() => setDeletingId(c.id)}
+                    style={{ fontSize: '14px', padding: '8px 12px', color: 'var(--red)', border: '1px solid transparent' }}
+                    title="Eliminar consulta"
+                  >
+                    🗑️
+                  </button>
+                  <button
+                    className="btn-primary"
+                    onClick={() => setEditingId(c.id)}
+                    style={{ fontSize: '13px', padding: '8px 16px' }}
+                  >
+                    ✏️ Editar
+                  </button>
+                </div>
               </div>
 
               {/* Resumen rápido */}
@@ -234,6 +277,44 @@ export default function ConsultationHistory({ patient }: { patient: Patient }) {
           )
         })}
       </div>
+
+      {/* POP-UP DE SEGURIDAD PARA ELIMINAR */}
+      {deletingId && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div className="glass-card" style={{ maxWidth: '400px', width: '100%', padding: '32px 24px', textAlign: 'center', border: '1px solid var(--red)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+            <h3 style={{ fontFamily: 'DM Sans', fontSize: '20px', fontWeight: 700, margin: '0 0 12px', color: 'white' }}>
+              ¿Eliminar esta consulta?
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '28px', lineHeight: 1.5 }}>
+              Esta acción <b>no se puede deshacer</b>. Se borrarán de forma permanente todas las medidas antropométricas, laboratorios, péptidos y fotos vinculados a esta fecha.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn-ghost" 
+                style={{ flex: 1, padding: '12px', fontSize: '14px' }} 
+                onClick={() => setDeletingId(null)} 
+                disabled={isDeleting}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-primary" 
+                style={{ flex: 1, padding: '12px', fontSize: '14px', background: 'var(--red)', borderColor: 'var(--red)', color: 'white' }} 
+                onClick={confirmDelete} 
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Borrando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
